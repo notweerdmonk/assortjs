@@ -20,25 +20,25 @@ type assertions or declarations.
 For local development, clone or copy this repository and import the module:
 
 ```js
-import { v, parse } from "./type-checker.mjs";
+import { v, parse } from "./assort.mjs";
 ```
 
 When published as an npm package, install it with:
 
 ```sh
-npm install runtime-type-checker
+npm install assortjs
 ```
 
 Then import it:
 
 ```js
-import { v, parse } from "runtime-type-checker";
+import { v, parse } from "assortjs";
 ```
 
 ## Quick start
 
 ```js
-import { v, safeParse } from "./type-checker.mjs";
+import { v, safeParse } from "./assort.mjs";
 
 const userSchema = v.object({
   id: v.number({ integer: true, min: 1 }),
@@ -168,16 +168,22 @@ try {
 
 ## Testing
 
-Run the test suite using `npx`:
-
-```sh
-npx --yes mocha --reporter spec
-```
-
-Or use Node’s built-in test runner directly:
+Run the test suite:
 
 ```sh
 npm test
+```
+
+Tests can also be run directly with Node’s built-in test runner:
+
+```sh
+node --test
+```
+
+Run the type check:
+
+```sh
+npm run typecheck
 ```
 
 ## License
