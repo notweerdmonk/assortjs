@@ -1,7 +1,0 @@
-{
-  "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["./assort.mjs"],
-  "out": "./docs",
-  "name": "assortjs",
-  "includeVersion": true
-}

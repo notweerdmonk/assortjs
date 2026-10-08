@@ -1,7 +1,7 @@
 /*
  * MIT License
  * 
- * Copyright (c) 2025 notweerdmonk, gpt-6-luna
+ * Copyright (c) 2026 notweerdmonk, gpt-6-luna
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,92 +22,41 @@
  * SOFTWARE.
  */
 
-// @ts-check
-
 /**
  * Private runtime brand used to recognize schemas created by this module.
- * @type {unique symbol}
  */
 const BRAND = Symbol("schema");
 
 /**
  * Internal sentinel that distinguishes validation failure from valid values
  * such as `undefined`.
- * @type {unique symbol}
  */
 const INVALID = Symbol("invalid");
-
-/** @typedef {"strict" | "strip" | "passthrough"} UnknownKeyMode */
-
-/** @typedef {{ kind: "any" }} AnyValueSchema */
-/** @typedef {{ kind: "unknown" }} UnknownValueSchema */
-/** @typedef {{ kind: "never" }} NeverValueSchema */
-/** @typedef {{ kind: "string" }} StringValueSchema */
-/** @typedef {{ kind: "boolean" }} BooleanValueSchema */
-/** @typedef {{ kind: "bigint" }} BigintValueSchema */
-/** @typedef {{ kind: "symbol" }} SymbolValueSchema */
-/** @typedef {{ kind: "undefined" }} UndefinedValueSchema */
-/** @typedef {{ kind: "null" }} NullValueSchema */
-/** @typedef {{ kind: "number", finite: boolean, integer: boolean, safeInteger: boolean, min: number, max: number }} NumberSchema */
-/** @typedef {{ kind: "literal", value: unknown }} LiteralSchema */
-/** @typedef {{ kind: "array", item: Schema, min: number, max: number }} ArraySchema */
-/** @typedef {{ kind: "tuple", items: readonly Schema[] }} TupleSchema */
-/** @typedef {{ kind: "object", entries: readonly (readonly [PropertyKey, Schema])[], unknownKeys: UnknownKeyMode }} ObjectSchema */
-/** @typedef {{ kind: "record", valueSchema: Schema }} RecordSchema */
-/** @typedef {{ kind: "optional", inner: Schema }} OptionalSchema */
-/** @typedef {{ kind: "nullable", inner: Schema }} NullableSchema */
-/** @typedef {{ kind: "union", schemas: readonly Schema[] }} UnionSchema */
-/** @typedef {{ kind: "instanceOf", constructor: Function }} InstanceOfSchema */
-/** @typedef {{ kind: "exactPrototype", prototype: object }} ExactPrototypeSchema */
-/** @typedef {{ kind: "custom", check: (value: unknown) => boolean, description: string }} CustomSchema */
-/** @typedef {{ kind: "lazy", getter: () => Schema }} LazySchema */
-
-/** @typedef {AnyValueSchema | UnknownValueSchema | NeverValueSchema | StringValueSchema | BooleanValueSchema | BigintValueSchema | SymbolValueSchema | UndefinedValueSchema | NullValueSchema | NumberSchema | LiteralSchema | ArraySchema | TupleSchema | ObjectSchema | RecordSchema | OptionalSchema | NullableSchema | UnionSchema | InstanceOfSchema | ExactPrototypeSchema | CustomSchema | LazySchema} Schema */
-
-/**
- * @typedef {{
- *   path: string,
- *   expected: string,
- *   received: string
- * }} ValidationIssue
- */
 
 /**
  * Creates an immutable schema descriptor.
  *
- * The cast expresses the relationship between each `kind` and its options;
- * the public schema constructors below provide the typed entry points.
- *
  * @param {string} kind
  * @param {Record<string, unknown>} [options]
- * @returns {Schema}
  */
 function makeSchema(kind, options = {}) {
-  return /** @type {Schema} */ (
-    Object.freeze({ [BRAND]: true, kind, ...options })
-  );
+  return Object.freeze({ [BRAND]: true, kind, ...options });
 }
 
 /**
  * Tests whether a value carries this module's private schema brand.
- *
- * @param {unknown} value
- * @returns {value is Schema}
  */
 function isSchema(value) {
   if (value === null || (typeof value !== "object" && typeof value !== "function")) {
     return false;
   }
 
-  return /** @type {Record<PropertyKey, unknown>} */ (value)[BRAND] === true;
+  return value[BRAND] === true;
 }
 
 /**
  * Returns true for ordinary objects and null-prototype objects, but not arrays
  * or class instances.
- *
- * @param {unknown} value
- * @returns {value is Record<PropertyKey, unknown>}
  */
 function isPlainRecord(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -121,11 +70,6 @@ function isPlainRecord(value) {
 /**
  * Defines an enumerable own data property. Using `defineProperty` avoids
  * special behavior for keys such as `"__proto__"`.
- *
- * @param {object} target
- * @param {PropertyKey} key
- * @param {unknown} value
- * @returns {void}
  */
 function defineValue(target, key, value) {
   Object.defineProperty(target, key, {
@@ -171,15 +115,6 @@ const v = Object.freeze({
   /**
    * Accepts numbers, optionally constrained by finiteness, integer-ness,
    * and inclusive minimum and maximum values.
-   *
-   * @param {{
-   *   finite?: boolean,
-   *   integer?: boolean,
-   *   safeInteger?: boolean,
-   *   min?: number,
-   *   max?: number
-   * }} [options]
-   * @returns {Schema}
    */
   number: (options = {}) => makeSchema("number", {
     finite: options.finite ?? false,
@@ -189,21 +124,10 @@ const v = Object.freeze({
     max: options.max ?? Infinity,
   }),
 
-  /**
-   * Accepts a value that is `Object.is`-equal to the supplied value.
-   *
-   * @param {unknown} value
-   * @returns {Schema}
-   */
+  /** Accepts a value that is `Object.is`-equal to the supplied value. */
   literal: value => makeSchema("literal", { value }),
 
-  /**
-   * Accepts an array whose elements match `item`.
-   *
-   * @param {Schema} item
-   * @param {{ min?: number, max?: number }} [options]
-   * @returns {Schema}
-   */
+  /** Accepts an array whose elements match `item`. */
   array: (item, options = {}) => {
     if (!isSchema(item)) throw new TypeError("array() expects a schema");
     return makeSchema("array", {
@@ -213,12 +137,7 @@ const v = Object.freeze({
     });
   },
 
-  /**
-   * Accepts an array with exactly one position per supplied schema.
-   *
-   * @param {Schema[]} items
-   * @returns {Schema}
-   */
+  /** Accepts an array with exactly one position per supplied schema. */
   tuple: items => {
     if (!Array.isArray(items) || !items.every(isSchema)) {
       throw new TypeError("tuple() expects an array of schemas");
@@ -226,22 +145,14 @@ const v = Object.freeze({
     return makeSchema("tuple", { items: Object.freeze([...items]) });
   },
 
-  /**
-   * Accepts a plain object with the given property schemas.
-   *
-   * @param {object} shape
-   * @param {{ unknownKeys?: UnknownKeyMode }} [options]
-   * @returns {Schema}
-   */
+  /** Accepts a plain object with the given property schemas. */
   object: (shape, options = {}) => {
     if (shape === null || typeof shape !== "object") {
       throw new TypeError("object() expects a shape object");
     }
 
-    const shapeValues =
-      /** @type {Record<PropertyKey, unknown>} */ (shape);
+    const shapeValues = shape;
 
-    /** @type {Array<[PropertyKey, Schema]>} */
     const entries = Reflect.ownKeys(shape).map(key => {
       const schema = shapeValues[key];
       if (!isSchema(schema)) {
@@ -264,9 +175,6 @@ const v = Object.freeze({
   /**
    * Accepts a plain object whose enumerable string-keyed values match
    * `valueSchema`.
-   *
-   * @param {Schema} valueSchema
-   * @returns {Schema}
    */
   record: valueSchema => {
     if (!isSchema(valueSchema)) {
@@ -275,34 +183,19 @@ const v = Object.freeze({
     return makeSchema("record", { valueSchema });
   },
 
-  /**
-   * Accepts `undefined` or a value matching `inner`.
-   *
-   * @param {Schema} inner
-   * @returns {Schema}
-   */
+  /** Accepts `undefined` or a value matching `inner`. */
   optional: inner => {
     if (!isSchema(inner)) throw new TypeError("optional() expects a schema");
     return makeSchema("optional", { inner });
   },
 
-  /**
-   * Accepts `null` or a value matching `inner`.
-   *
-   * @param {Schema} inner
-   * @returns {Schema}
-   */
+  /** Accepts `null` or a value matching `inner`. */
   nullable: inner => {
     if (!isSchema(inner)) throw new TypeError("nullable() expects a schema");
     return makeSchema("nullable", { inner });
   },
 
-  /**
-   * Accepts a value matching at least one schema in the non-empty list.
-   *
-   * @param {Schema[]} schemas
-   * @returns {Schema}
-   */
+  /** Accepts a value matching at least one schema in the non-empty list. */
   union: schemas => {
     if (!Array.isArray(schemas) || schemas.length === 0 ||
         !schemas.every(isSchema)) {
@@ -311,12 +204,7 @@ const v = Object.freeze({
     return makeSchema("union", { schemas: Object.freeze([...schemas]) });
   },
 
-  /**
-   * Accepts values for which `value instanceof constructor` is true.
-   *
-   * @param {Function} constructor
-   * @returns {Schema}
-   */
+  /** Accepts values for which `value instanceof constructor` is true. */
   instanceOf: constructor => {
     if (typeof constructor !== "function") {
       throw new TypeError("instanceOf() expects a constructor");
@@ -324,12 +212,7 @@ const v = Object.freeze({
     return makeSchema("instanceOf", { constructor });
   },
 
-  /**
-   * Accepts objects or functions whose prototype is exactly `prototype`.
-   *
-   * @param {object} prototype
-   * @returns {Schema}
-   */
+  /** Accepts objects or functions whose prototype is exactly `prototype`. */
   exactPrototype: prototype => {
     if (prototype === null || typeof prototype !== "object") {
       throw new TypeError("exactPrototype() expects a prototype object");
@@ -340,10 +223,6 @@ const v = Object.freeze({
   /**
    * Accepts values for which `check` returns true. If the predicate throws,
    * validation fails with the supplied description.
-   *
-   * @param {(value: unknown) => boolean} check
-   * @param {string} [description]
-   * @returns {Schema}
    */
   custom: (check, description = "custom value") => {
     if (typeof check !== "function") {
@@ -355,9 +234,6 @@ const v = Object.freeze({
   /**
    * Defers schema construction until validation, which allows recursive
    * schemas to refer to themselves.
-   *
-   * @param {() => Schema} getter
-   * @returns {Schema}
    */
   lazy: getter => {
     if (typeof getter !== "function") {
@@ -367,12 +243,7 @@ const v = Object.freeze({
   },
 });
 
-/**
- * Produces a concise JavaScript type label for validation errors.
- *
- * @param {unknown} value
- * @returns {string}
- */
+/** Produces a concise JavaScript type label for validation errors. */
 function receivedType(value) {
   if (value === null) return "null";
   if (Array.isArray(value)) return "array";
@@ -380,12 +251,7 @@ function receivedType(value) {
   return typeof value;
 }
 
-/**
- * Formats a property/index path for human-readable validation errors.
- *
- * @param {PropertyKey[]} path
- * @returns {string}
- */
+/** Formats a property/index path for human-readable validation errors. */
 function pathText(path) {
   if (path.length === 0) return "<root>";
   return path.map(part =>
@@ -393,15 +259,7 @@ function pathText(path) {
   ).join("");
 }
 
-/**
- * Adds a validation issue and returns the internal failure sentinel.
- *
- * @param {ValidationIssue[]} issues
- * @param {PropertyKey[]} path
- * @param {string} expected
- * @param {unknown} value
- * @returns {typeof INVALID}
- */
+/** Adds a validation issue and returns the internal failure sentinel. */
 function issue(issues, path, expected, value) {
   issues.push({
     path: pathText(path),
@@ -415,13 +273,12 @@ function issue(issues, path, expected, value) {
  * Validates a value against a schema and returns either the parsed value or
  * the private failure sentinel. Composite schemas build fresh arrays/objects.
  *
- * @param {Schema} schema
- * @param {unknown} value
- * @param {PropertyKey[]} path
- * @param {ValidationIssue[]} issues
- * @param {number} depth
- * @param {number} maxDepth
- * @returns {unknown}
+ * @param schema Schema descriptor to validate against.
+ * @param value Value to validate.
+ * @param path Current property or array-index path.
+ * @param issues Array to collect validation issues in.
+ * @param depth Current nesting depth.
+ * @param maxDepth Maximum allowed nesting depth.
  */
 function validate(schema, value, path, issues, depth, maxDepth) {
   if (depth > maxDepth) {
@@ -486,7 +343,6 @@ function validate(schema, value, path, issues, depth, maxDepth) {
         return issue(issues, path, `array length ${schema.min}..${schema.max}`, value);
       }
 
-      /** @type {unknown[]} */
       const result = [];
       for (let i = 0; i < value.length; i++) {
         if (!Object.hasOwn(value, i)) {
@@ -506,7 +362,6 @@ function validate(schema, value, path, issues, depth, maxDepth) {
         return issue(issues, path, `tuple of length ${schema.items.length}`, value);
       }
 
-      /** @type {unknown[]} */
       const result = [];
       for (let i = 0; i < schema.items.length; i++) {
         if (!Object.hasOwn(value, i)) {
@@ -527,9 +382,7 @@ function validate(schema, value, path, issues, depth, maxDepth) {
       }
 
       const knownKeys = new Set(
-        schema.entries.map(
-          (/** @type {readonly [PropertyKey, Schema]} */ [key]) => key
-        )
+        schema.entries.map(([key]) => key)
       );
       const extraKeys = Reflect.ownKeys(value).filter(key =>
         Object.prototype.propertyIsEnumerable.call(value, key) &&
@@ -545,7 +398,6 @@ function validate(schema, value, path, issues, depth, maxDepth) {
         );
       }
 
-      /** @type {Record<PropertyKey, unknown>} */
       const result = {};
       for (const [key, childSchema] of schema.entries) {
         if (!Object.hasOwn(value, key)) {
@@ -569,7 +421,6 @@ function validate(schema, value, path, issues, depth, maxDepth) {
     case "record": {
       if (!isPlainRecord(value)) return issue(issues, path, "plain record", value);
 
-      /** @type {Record<string, unknown>} */
       const result = {};
       for (const key of Object.keys(value)) {
         const parsed = validate(
@@ -583,7 +434,6 @@ function validate(schema, value, path, issues, depth, maxDepth) {
 
     case "union": {
       for (const alternative of schema.schemas) {
-        /** @type {ValidationIssue[]} */
         const branchIssues = [];
         const parsed = validate(
           alternative, value, path, branchIssues, depth + 1, maxDepth
@@ -628,22 +478,18 @@ function validate(schema, value, path, issues, depth, maxDepth) {
       return validate(inner, value, path, issues, depth + 1, maxDepth);
     }
 
-    default: {
-      const unexpectedSchema =
-      /** @type {{ kind: string }} */ (schema);
-      throw new TypeError(`Unknown schema kind: ${unexpectedSchema.kind}`);
-    }
+    default:
+      throw new TypeError(`Unknown schema kind: ${schema.kind}`);
   }
 }
 
 /**
  * Error thrown by `parse` when validation fails. The structured `issues`
  * property is also available to callers who need machine-readable details.
+ *
+ * @param issues Validation issues describing the failure.
  */
 class ValidationError extends TypeError {
-  /**
-   * @param {ValidationIssue[]} issues
-   */
   constructor(issues) {
     super(issues.map(e =>
       `${e.path}: expected ${e.expected}, received ${e.received}`
@@ -656,15 +502,16 @@ class ValidationError extends TypeError {
 /**
  * Validates without throwing for ordinary validation failures.
  *
- * @param {Schema} schema
- * @param {unknown} value
- * @param {{ maxDepth?: number }} [options]
- * @returns {{ success: true, data: unknown } | { success: false, error: ValidationError }}
+ * @param schema Schema descriptor to validate against.
+ * @param value Value to validate.
+ * @param options Optional validation settings.
+ * @param options.maxDepth Maximum allowed nesting depth. Defaults to 100.
+ * @returns An object with `success: true` and parsed `data`, or `success: false`
+ *          and a `ValidationError`.
  */
 function safeParse(schema, value, { maxDepth = 100 } = {}) {
   if (!isSchema(schema)) throw new TypeError("Expected a schema from v.*");
 
-  /** @type {ValidationIssue[]} */
   const issues = [];
   try {
     const data = validate(schema, value, [], issues, 0, maxDepth);
@@ -686,9 +533,9 @@ function safeParse(schema, value, { maxDepth = 100 } = {}) {
 /**
  * Returns whether the value satisfies the schema.
  *
- * @param {Schema} schema
- * @param {unknown} value
- * @returns {boolean}
+ * @param schema Schema descriptor to test against.
+ * @param value Value to test.
+ * @returns `true` if the value satisfies the schema; otherwise `false`.
  */
 function matches(schema, value) {
   return safeParse(schema, value).success;
@@ -697,13 +544,14 @@ function matches(schema, value) {
 /**
  * Validates and returns the parsed value, or throws a `ValidationError`.
  *
- * The return type is `unknown`: this JavaScript API checks values at runtime,
- * but does not infer a corresponding TypeScript type from the schema.
+ * The JavaScript API checks values at runtime but does not infer a
+ * corresponding TypeScript type from the schema.
  *
- * @param {Schema} schema
- * @param {unknown} value
- * @param {{ maxDepth?: number }} [options]
- * @returns {unknown}
+ * @param schema Schema descriptor to validate against.
+ * @param value Value to validate.
+ * @param options Optional validation settings.
+ * @param options.maxDepth Maximum allowed nesting depth. Defaults to 100.
+ * @returns The parsed value.
  * @throws {ValidationError} When the value does not satisfy the schema.
  */
 function parse(schema, value, options) {
