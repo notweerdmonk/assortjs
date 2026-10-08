@@ -14,10 +14,12 @@
   ],
   "scripts": {
     "test": "node --test",
-    "typecheck": "npx tsc --allowJs --checkJs --noEmit --target ES2022 --module NodeNext assort.mjs"
+    "typecheck": "npx tsc --allowJs --checkJs --noEmit --target ES2022 --module NodeNext assort.mjs",
+    "docs": "typedoc"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "typedoc": "^0.28.20"
   },
   "engines": {
     "node": ">=20"
