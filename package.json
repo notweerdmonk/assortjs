@@ -1,6 +1,6 @@
 {
   "name": "assortjs",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "Small schema-based runtime value validator for JavaScript ES modules",
   "type": "module",
   "main": "./assort.mjs",
