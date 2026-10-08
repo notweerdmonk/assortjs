@@ -708,7 +708,7 @@ function matches(schema, value) {
  */
 function parse(schema, value, options) {
   const result = safeParse(schema, value, options);
-  if (!result.success) throw result.error;
+  if ("error" in result) throw result.error;
   return result.data;
 }
 
