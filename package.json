@@ -1,0 +1,26 @@
+{
+  "name": "assortjs",
+  "version": "1.0.0",
+  "description": "Small schema-based runtime value validator for JavaScript ES modules",
+  "type": "module",
+  "main": "./assort.mjs",
+  "exports": {
+    ".": "./assort.mjs"
+  },
+  "files": [
+    "assort.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "npx tsc --allowJs --checkJs --noEmit --target ES2022 --module NodeNext assort.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
